@@ -5,6 +5,10 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import { logActivity } from "./db";
+import { logAuditAction, getAuditLog } from "./auditLog";
+import { getUserPermissions, hasPermission } from "./users";
+import { PERMISSIONS, ROLES } from "./permissions";
+import { getAllUsers } from "./users";
 
 export const appRouter = router({
   system: systemRouter,
@@ -156,6 +160,35 @@ export const appRouter = router({
     unread: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user?.id) return [];
       return await db.getUnreadNotifications(ctx.user.id);
+    }),
+  }),
+
+  // Audit Log router
+  auditLog: router({
+    list: protectedProcedure.input(z.object({
+      module: z.string().optional(),
+      action: z.string().optional(),
+      limit: z.number().optional().default(100),
+      offset: z.number().optional().default(0),
+    })).query(async ({ input, ctx }) => {
+      if (!ctx.user || ctx.user.role !== ROLES.ADMIN) {
+        throw new Error('Only system administrators can view audit logs');
+      }
+      return await getAuditLog(ctx.user, input);
+    }),
+  }),
+
+  // Users router
+  users: router({
+    list: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user || ctx.user.role !== ROLES.ADMIN) {
+        throw new Error('Only system administrators can view users');
+      }
+      return await getAllUsers(ctx.user);
+    }),
+    permissions: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user) return [];
+      return await getUserPermissions(ctx.user);
     }),
   }),
 });

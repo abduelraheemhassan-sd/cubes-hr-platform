@@ -36,6 +36,13 @@
       "when": 1780857040665,
       "tag": "0004_hot_warpath",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1780858936058,
+      "tag": "0005_yummy_hobgoblin",
+      "breakpoints": true
     }
   ]
 }

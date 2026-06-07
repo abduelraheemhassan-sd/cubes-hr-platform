@@ -201,7 +201,30 @@ export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = typeof attendance.$inferInsert;
 
 /**
- * سجل النشاط
+ * سجل العمليات (Audit Log) - لا يمكن تعديله إلا من قبل مدير النظام
+ */
+export const auditLog = mysqlTable("audit_log", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  action: varchar("action", { length: 100 }).notNull(), // create, read, update, delete, login, logout
+  module: varchar("module", { length: 50 }).notNull(), // employees, contracts, documents, users, etc.
+  targetId: int("targetId"),
+  targetType: varchar("targetType", { length: 50 }),
+  oldValues: text("oldValues"), // JSON للقيم القديمة
+  newValues: text("newValues"), // JSON للقيم الجديدة
+  details: text("details"),
+  ipAddress: varchar("ipAddress", { length: 50 }),
+  userAgent: text("userAgent"),
+  status: mysqlEnum("status", ["success", "failure"]).default("success"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  // لا يوجد updatedAt لأن السجل لا يمكن تعديله
+});
+
+export type AuditLog = typeof auditLog.$inferSelect;
+export type InsertAuditLog = typeof auditLog.$inferInsert;
+
+/**
+ * سجل النشاط القديم (للموافقة)
  */
 export const activityLog = mysqlTable("activity_log", {
   id: int("id").autoincrement().primaryKey(),
