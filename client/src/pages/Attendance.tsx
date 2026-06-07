@@ -4,7 +4,8 @@ import { Users, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function Attendance() {
-  const { data: attendance = [], isLoading } = trpc.attendance.getByEmployeeId.useQuery({ employeeId: 0 });
+  const { data: attendance = [], isLoading } = trpc.attendance.getByEmployeeId.useQuery({ employeeId: 0 }, { enabled: false });
+  // TODO: استبدال بـ query يجلب سجلات الحضور لليوم الحالي
   const { data: employees = [] } = trpc.employees.list.useQuery();
 
   const getEmployeeName = (empId: number) => {
@@ -23,7 +24,12 @@ export default function Attendance() {
   };
 
   const today = new Date().toISOString().split('T')[0];
-  const todayAttendance = attendance.filter((a: any) => a.date === today);
+  // بيانات تجريبية للحضور اليومي
+  const todayAttendance = [
+    { id: 1, employeeId: 1, date: today, checkInTime: '08:30', checkOutTime: '17:00', status: 'present', notes: '' },
+    { id: 2, employeeId: 2, date: today, checkInTime: '08:45', checkOutTime: '17:15', status: 'late', notes: 'تأخر 15 دقيقة' },
+    { id: 3, employeeId: 3, date: today, checkInTime: '', checkOutTime: '', status: 'absent', notes: 'غياب بدون إذن' },
+  ]
   
   const presentCount = todayAttendance.filter((a: any) => a.status === 'present').length;
   const absentCount = todayAttendance.filter((a: any) => a.status === 'absent').length;
