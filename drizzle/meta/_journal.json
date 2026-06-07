@@ -15,6 +15,13 @@
       "when": 1780851170741,
       "tag": "0001_skinny_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1780853789117,
+      "tag": "0002_wealthy_sage",
+      "breakpoints": true
     }
   ]
 }

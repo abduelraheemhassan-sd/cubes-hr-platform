@@ -108,6 +108,38 @@ export const appRouter = router({
     }),
   }),
 
+  // Employee Documents router
+  employeeDocuments: router({
+    getByEmployeeId: protectedProcedure.input(z.object({ employeeId: z.number() })).query(async ({ input }) => {
+      return await db.getEmployeeDocuments(input.employeeId);
+    }),
+    create: protectedProcedure.input(z.object({
+      employeeId: z.number(),
+      documentType: z.string(),
+      documentNumber: z.string().optional(),
+      imageUrl: z.string(),
+      expiryDate: z.string().optional(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const result = await db.createEmployeeDocument({
+        employeeId: input.employeeId,
+        documentType: input.documentType,
+        documentNumber: input.documentNumber,
+        imageUrl: input.imageUrl,
+        expiryDate: input.expiryDate ? new Date(input.expiryDate) : undefined,
+        uploadedBy: ctx.user?.id,
+        notes: input.notes,
+      });
+      await logActivity(ctx.user?.id, "CREATE", "employee_documents", input.employeeId, "document", `Uploaded ${input.documentType}`);
+      return result;
+    }),
+    delete: protectedProcedure.input(z.object({ id: z.number() })).mutation(async ({ input, ctx }) => {
+      const result = await db.deleteEmployeeDocument(input.id);
+      await logActivity(ctx.user?.id, "DELETE", "employee_documents", input.id, "document", "Deleted document");
+      return result;
+    }),
+  }),
+
   // Notifications router
   notifications: router({
     list: protectedProcedure.query(async ({ ctx }) => {

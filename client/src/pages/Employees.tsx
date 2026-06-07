@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Edit2, Trash2, Search, Eye } from 'lucide-react';
 import { toast } from 'sonner';
+import EmployeeDetails from './EmployeeDetails';
 
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -165,6 +166,11 @@ export default function Employees() {
 
   return (
     <div className="space-y-6">
+      <EmployeeDetails
+        employee={selectedEmployee}
+        isOpen={isDetailOpen}
+        onClose={() => setIsDetailOpen(false)}
+      />
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>

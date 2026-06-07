@@ -140,7 +140,26 @@ export const documents = mysqlTable("documents", {
 });
 
 export type Document = typeof documents.$inferSelect;
-export type InsertDocument = typeof documents.$inferInsert;
+export type InsertDocument = typeof documents.$inferSelect;
+
+/**
+ * وثائق الموظف (صور البطاقة الشخصية، رخصة القيادة، إلخ)
+ */
+export const employeeDocuments = mysqlTable("employee_documents", {
+  id: int("id").autoincrement().primaryKey(),
+  employeeId: int("employeeId").notNull(),
+  documentType: varchar("documentType", { length: 100 }).notNull(), // national_id, driving_license, personal_card, etc.
+  documentNumber: varchar("documentNumber", { length: 100 }),
+  imageUrl: varchar("imageUrl", { length: 500 }).notNull(),
+  expiryDate: date("expiryDate"),
+  uploadedBy: int("uploadedBy"),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+export type InsertEmployeeDocument = typeof employeeDocuments.$inferInsert;
 
 /**
  * طلبات الموافقة

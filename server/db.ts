@@ -1,6 +1,6 @@
 import { eq, and } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users, employees, InsertEmployee, departments, roles, permissions, rolePermissions, contracts, documents, approvals, attendance, notifications, activityLog } from "../drizzle/schema";
+import { InsertUser, users, employees, InsertEmployee, departments, roles, permissions, rolePermissions, contracts, documents, approvals, attendance, notifications, activityLog, employeeDocuments, InsertEmployeeDocument, EmployeeDocument } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -248,4 +248,43 @@ export async function checkUserPermission(userId: number, module: string, action
   ).limit(1);
 
   return perm.length > 0 && permIds.includes(perm[0].id);
+}
+
+
+// ===== Employee Documents queries =====
+export async function getEmployeeDocuments(employeeId: number): Promise<EmployeeDocument[]> {
+  const db = await getDb();
+  if (!db) return [];
+  
+  return await db.select().from(employeeDocuments).where(eq(employeeDocuments.employeeId, employeeId));
+}
+
+export async function createEmployeeDocument(data: InsertEmployeeDocument) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(employeeDocuments).values(data);
+  return result;
+}
+
+export async function updateEmployeeDocument(id: number, data: Partial<InsertEmployeeDocument>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.update(employeeDocuments).set(data).where(eq(employeeDocuments.id, id));
+}
+
+export async function deleteEmployeeDocument(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.delete(employeeDocuments).where(eq(employeeDocuments.id, id));
+}
+
+export async function getEmployeeDocumentById(id: number): Promise<EmployeeDocument | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  
+  const result = await db.select().from(employeeDocuments).where(eq(employeeDocuments.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
 }
