@@ -38,6 +38,9 @@ export const appRouter = router({
       position: z.string().optional(),
       salary: z.string().optional(),
       hireDate: z.string().optional(),
+      terminationDate: z.string().optional(),
+      identityType: z.string().optional(),
+      status: z.enum(["active", "inactive", "on_leave", "terminated"]).optional(),
     })).mutation(async ({ input, ctx }) => {
       const result = await db.createEmployee(input as any);
       await logActivity(ctx.user?.id, "CREATE", "employees", undefined, "employee", `Created employee: ${input.firstName} ${input.lastName}`);
@@ -53,6 +56,8 @@ export const appRouter = router({
       departmentId: z.number().optional(),
       position: z.string().optional(),
       status: z.enum(["active", "inactive", "on_leave", "terminated"]).optional(),
+      identityType: z.string().optional(),
+      terminationDate: z.string().optional(),
     })).mutation(async ({ input, ctx }) => {
       const { id, ...data } = input;
       const result = await db.updateEmployee(id, data as any);

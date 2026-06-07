@@ -99,6 +99,8 @@ export const employees = mysqlTable("employees", {
   position: varchar("position", { length: 100 }),
   salary: decimal("salary", { precision: 10, scale: 2 }),
   hireDate: date("hireDate"),
+  terminationDate: date("terminationDate"),
+  identityType: varchar("identityType", { length: 50 }),
   status: mysqlEnum("status", ["active", "inactive", "on_leave", "terminated"]).default("active"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),

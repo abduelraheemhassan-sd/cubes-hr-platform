@@ -29,6 +29,8 @@ export default function Employees() {
     idNumber: '',
     salary: '',
     hireDate: '',
+    terminationDate: '',
+    status: 'active',
   });
 
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
@@ -84,6 +86,8 @@ export default function Employees() {
       idNumber: '',
       salary: '',
       hireDate: '',
+      terminationDate: '',
+      status: 'active',
     });
     setEditingId(null);
   };
@@ -106,6 +110,9 @@ export default function Employees() {
         phone: formData.phone,
         position: formData.position,
         departmentId: formData.department ? parseInt(formData.department) : undefined,
+        status: (formData.status as any) || 'active',
+        identityType: formData.idType || undefined,
+        terminationDate: formData.terminationDate || undefined,
       });
     } else {
       createMutation.mutate({
@@ -117,6 +124,9 @@ export default function Employees() {
         position: formData.position,
         departmentId: formData.department ? parseInt(formData.department) : undefined,
         hireDate: formData.hireDate || new Date().toISOString().split('T')[0],
+        status: (formData.status as any) || 'active',
+        identityType: formData.idType || undefined,
+        terminationDate: formData.terminationDate || undefined,
       });
     }
   };
@@ -131,10 +141,12 @@ export default function Employees() {
       position: employee.position || '',
       department: employee.departmentId ? employee.departmentId.toString() : '',
       nationality: '',
-      idType: '',
+      idType: employee.identityType || '',
       idNumber: employee.nationalId || '',
       salary: employee.salary || '',
       hireDate: employee.hireDate || '',
+      terminationDate: employee.terminationDate || '',
+      status: employee.status || 'active',
     });
     setEditingId(employee.id);
     setIsOpen(true);
@@ -308,6 +320,8 @@ export default function Employees() {
                       <SelectItem value="national_id">رقم وطني</SelectItem>
                       <SelectItem value="passport">جواز سفر</SelectItem>
                       <SelectItem value="driving_license">رخصة قيادة</SelectItem>
+                      <SelectItem value="personal_card">البطاقة الشخصية</SelectItem>
+                      <SelectItem value="security_card">بطاقة الحصر الأمني</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -347,6 +361,36 @@ export default function Employees() {
                     onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
                     className="text-right"
                   />
+                </div>
+              </div>
+
+              {/* Row 4: تاريخ الإنهاء وحالة الموظف */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ الإنهاء</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="date"
+                      value={formData.terminationDate}
+                      onChange={(e) => setFormData({ ...formData, terminationDate: e.target.value })}
+                      className="text-right"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 text-right">يوم / شهر / سنة</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">حالة الموظف</label>
+                  <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="اختر الحالة" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">نشط</SelectItem>
+                      <SelectItem value="inactive">موقوف</SelectItem>
+                      <SelectItem value="on_leave">على إجازة</SelectItem>
+                      <SelectItem value="terminated">منهي الخدمة</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
