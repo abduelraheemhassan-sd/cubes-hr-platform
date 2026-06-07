@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Upload, X, Eye, Trash2 } from 'lucide-react';
+import { Upload, X, Eye, Trash2, Download, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EmployeeDetailsProps {
@@ -22,6 +22,7 @@ export default function EmployeeDetails({ employee, isOpen, onClose }: EmployeeD
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [printingDocId, setPrintingDocId] = useState<number | null>(null);
 
   const { data: documents = [], refetch: refetchDocuments } = trpc.employeeDocuments.getByEmployeeId.useQuery(
     { employeeId: employee?.id || 0 },
@@ -104,6 +105,59 @@ export default function EmployeeDetails({ employee, isOpen, onClose }: EmployeeD
       'personal_card': 'البطاقة الشخصية',
     };
     return types[type] || type;
+  };
+
+  const handleDownloadDocument = (imageUrl: string, documentType: string, documentNumber?: string) => {
+    try {
+      const link = document.createElement('a');
+      link.href = imageUrl;
+      const fileName = `${getDocumentTypeLabel(documentType)}${documentNumber ? '_' + documentNumber : ''}.jpg`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('تم تحميل الوثيقة بنجاح');
+    } catch (error) {
+      toast.error('فشل تحميل الوثيقة');
+    }
+  };
+
+  const handlePrintDocument = (imageUrl: string, documentType: string) => {
+    try {
+      const printWindow = window.open('', '', 'height=600,width=800');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html dir="rtl">
+            <head>
+              <title>${getDocumentTypeLabel(documentType)}</title>
+              <style>
+                body { margin: 0; padding: 20px; font-family: Arial, sans-serif; }
+                .print-container { text-align: center; }
+                .print-container img { max-width: 100%; height: auto; margin: 20px 0; }
+                .print-container h2 { margin: 10px 0; color: #333; }
+                @media print {
+                  body { margin: 0; padding: 0; }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="print-container">
+                <h2>${getDocumentTypeLabel(documentType)}</h2>
+                <img src="${imageUrl}" alt="${getDocumentTypeLabel(documentType)}" />
+              </div>
+              <script>
+                window.print();
+                window.onafterprint = function() { window.close(); };
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        setPrintingDocId(null);
+      }
+    } catch (error) {
+      toast.error('فشل طباعة الوثيقة');
+    }
   };
 
   if (!isOpen || !employee) return null;
@@ -315,8 +369,27 @@ export default function EmployeeDetails({ employee, isOpen, onClose }: EmployeeD
                               variant="ghost"
                               className="text-white hover:bg-white hover:text-black"
                               onClick={() => setSelectedImage(doc.imageUrl)}
+                              title="عرض"
                             >
                               <Eye className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-white hover:bg-blue-600"
+                              onClick={() => handleDownloadDocument(doc.imageUrl, doc.documentType, doc.documentNumber)}
+                              title="تحميل"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-white hover:bg-green-600"
+                              onClick={() => handlePrintDocument(doc.imageUrl, doc.documentType)}
+                              title="طباعة"
+                            >
+                              <Printer className="w-4 h-4" />
                             </Button>
                             <Button
                               size="sm"
@@ -327,6 +400,7 @@ export default function EmployeeDetails({ employee, isOpen, onClose }: EmployeeD
                                   deleteDocumentMutation.mutate({ id: doc.id });
                                 }
                               }}
+                              title="حذف"
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
