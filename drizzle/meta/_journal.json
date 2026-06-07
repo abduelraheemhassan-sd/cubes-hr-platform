@@ -22,6 +22,13 @@
       "when": 1780853789117,
       "tag": "0002_wealthy_sage",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1780855549508,
+      "tag": "0003_old_gideon",
+      "breakpoints": true
     }
   ]
 }

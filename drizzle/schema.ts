@@ -90,6 +90,7 @@ export const employees = mysqlTable("employees", {
   id: int("id").autoincrement().primaryKey(),
   userId: int("userId"),
   firstName: varchar("firstName", { length: 100 }).notNull(),
+  middleName: varchar("middleName", { length: 100 }),
   lastName: varchar("lastName", { length: 100 }).notNull(),
   email: varchar("email", { length: 320 }).notNull().unique(),
   phone: varchar("phone", { length: 20 }),

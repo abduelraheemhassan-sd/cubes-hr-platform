@@ -1,0 +1,1 @@
+ALTER TABLE `employees` ADD `middleName` varchar(100);

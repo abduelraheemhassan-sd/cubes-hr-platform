@@ -18,6 +18,7 @@ export default function Employees() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
+    middleName: '',
     lastName: '',
     email: '',
     phone: '',
@@ -72,6 +73,7 @@ export default function Employees() {
   const resetForm = () => {
     setFormData({
       firstName: '',
+      middleName: '',
       lastName: '',
       email: '',
       phone: '',
@@ -89,20 +91,17 @@ export default function Employees() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.email || !formData.position || !formData.department) {
-      toast.error('يرجى ملء الحقول المطلوبة: الاسم والبريد والمسمى والقسم');
+    if (!formData.firstName || !formData.lastName || !formData.email || !formData.position || !formData.department) {
+      toast.error('يرجى ملء الحقول المطلوبة: الاسم الأول والأخير والبريد والمسمى والقسم');
       return;
     }
-
-    // استخدام firstName كاسم رباعي ولقب ك姓 للتوافق مع البيانات
-    const fullName = formData.firstName;
-    const lastNamePart = formData.lastName || fullName.split(' ').pop() || 'User';
 
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
-        firstName: fullName,
-        lastName: lastNamePart,
+        firstName: formData.firstName,
+        middleName: formData.middleName || undefined,
+        lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         position: formData.position,
@@ -110,8 +109,9 @@ export default function Employees() {
       });
     } else {
       createMutation.mutate({
-        firstName: fullName,
-        lastName: lastNamePart,
+        firstName: formData.firstName,
+        middleName: formData.middleName || undefined,
+        lastName: formData.lastName,
         email: formData.email,
         phone: formData.phone,
         position: formData.position,
@@ -124,6 +124,7 @@ export default function Employees() {
   const handleEdit = (employee: any) => {
     setFormData({
       firstName: employee.firstName,
+      middleName: employee.middleName || '',
       lastName: employee.lastName,
       email: employee.email,
       phone: employee.phone || '',
@@ -213,10 +214,10 @@ export default function Employees() {
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Row 1: الاسم الرباعي والقسم */}
+              {/* Row 1: الاسم الأول والاسم الأوسط والاسم الأخير */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الرباعي *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الأول *</label>
                   <Input
                     placeholder=""
                     value={formData.firstName}
@@ -225,6 +226,29 @@ export default function Employees() {
                     className="text-right"
                   />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الأوسط</label>
+                  <Input
+                    placeholder=""
+                    value={formData.middleName}
+                    onChange={(e) => setFormData({ ...formData, middleName: e.target.value })}
+                    className="text-right"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الأخير (العائلة) *</label>
+                  <Input
+                    placeholder=""
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    required
+                    className="text-right"
+                  />
+                </div>
+              </div>
+
+              {/* Row 2: المسمى الوظيفي والقسم */}
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">المسمى الوظيفي *</label>
                   <Input
@@ -236,10 +260,10 @@ export default function Employees() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">القسم الفني *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">القسم *</label>
                   <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
                     <SelectTrigger className="text-right">
-                      <SelectValue placeholder="تقنية المعلومات" />
+                      <SelectValue placeholder="اختر القسم" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept: any) => (

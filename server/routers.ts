@@ -29,6 +29,7 @@ export const appRouter = router({
     }),
     create: protectedProcedure.input(z.object({
       firstName: z.string(),
+      middleName: z.string().optional(),
       lastName: z.string(),
       email: z.string().email(),
       phone: z.string().optional(),
@@ -45,6 +46,7 @@ export const appRouter = router({
     update: protectedProcedure.input(z.object({
       id: z.number(),
       firstName: z.string().optional(),
+      middleName: z.string().optional(),
       lastName: z.string().optional(),
       email: z.string().email().optional(),
       phone: z.string().optional(),
