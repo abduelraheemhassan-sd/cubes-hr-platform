@@ -179,8 +179,9 @@ export default function Employees() {
   const getStatusLabel = (status: string) => {
     const statuses: { [key: string]: string } = {
       'active': 'نشط',
-      'inactive': 'غير نشط',
-      'on_leave': 'في إجازة',
+      'inactive': 'موقوف',
+      'on_leave': 'على إجازة',
+      'terminated': 'منهي الخدمة',
     };
     return statuses[status] || 'نشط';
   };
@@ -188,8 +189,9 @@ export default function Employees() {
   const getStatusColor = (status: string) => {
     const colors: { [key: string]: string } = {
       'active': 'bg-green-100 text-green-800',
-      'inactive': 'bg-gray-100 text-gray-800',
+      'inactive': 'bg-red-100 text-red-800',
       'on_leave': 'bg-yellow-100 text-yellow-800',
+      'terminated': 'bg-gray-100 text-gray-800',
     };
     return colors[status] || 'bg-green-100 text-green-800';
   };
@@ -553,8 +555,8 @@ export default function Employees() {
                         {employee.hireDate ? new Date(employee.hireDate).toLocaleDateString('ar-LY') : '-'}
                       </td>
                       <td className="px-4 py-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('active')}`}>
-                          {getStatusLabel('active')}
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(employee.status || 'active')}`}>
+                          {getStatusLabel(employee.status || 'active')}
                         </span>
                       </td>
                       <td className="px-4 py-4">
