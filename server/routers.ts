@@ -192,7 +192,11 @@ export const appRouter = router({
 
   // Approvals router
   approvals: router({
-    list: publicProcedure.query(async () => {
+    list: protectedProcedure.query(async ({ ctx }) => {
+      // Only admins and HR managers can view all approvals
+      if (ctx.user?.role !== ROLES.ADMIN && ctx.user?.role !== ROLES.HR_MANAGER) {
+        throw new Error('Only admins and HR managers can view all approvals');
+      }
       return await getAllApprovals();
     }),
     create: protectedProcedure.input(z.object({
@@ -206,6 +210,7 @@ export const appRouter = router({
         newValue: z.string().optional(),
       })).optional(),
     })).mutation(async ({ input, ctx }) => {
+      // Any authenticated user can create approval requests
       const approvalId = await createApprovalRequest(
         input.requestType,
         ctx.user?.id || 0,
@@ -220,6 +225,10 @@ export const appRouter = router({
       approvalId: z.number(),
       notes: z.string().optional(),
     })).mutation(async ({ input, ctx }) => {
+      // Only admins and HR managers can approve requests
+      if (ctx.user?.role !== ROLES.ADMIN && ctx.user?.role !== ROLES.HR_MANAGER) {
+        throw new Error('Only admins and HR managers can approve requests');
+      }
       const result = await approveRequest(input.approvalId, ctx.user?.id || 0, input.notes);
       return { success: result };
     }),
@@ -228,6 +237,10 @@ export const appRouter = router({
       rejectionReason: z.string(),
       notes: z.string().optional(),
     })).mutation(async ({ input, ctx }) => {
+      // Only admins and HR managers can reject requests
+      if (ctx.user?.role !== ROLES.ADMIN && ctx.user?.role !== ROLES.HR_MANAGER) {
+        throw new Error('Only admins and HR managers can reject requests');
+      }
       const result = await rejectRequest(input.approvalId, ctx.user?.id || 0, input.rejectionReason, input.notes);
       return { success: result };
     }),
