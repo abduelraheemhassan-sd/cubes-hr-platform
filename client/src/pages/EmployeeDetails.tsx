@@ -103,8 +103,19 @@ export default function EmployeeDetails({ employee, isOpen, onClose }: EmployeeD
       'residency': 'الإقامة',
       'driving_license': 'رخصة القيادة',
       'personal_card': 'البطاقة الشخصية',
+      'security_clearance': 'بطاقة الحصر الأمني',
     };
     return types[type] || type;
+  };
+
+  const getStatusLabel = (status: string) => {
+    const labels: { [key: string]: string } = {
+      'active': 'نشط',
+      'inactive': 'موقوف',
+      'on_leave': 'على إجازة',
+      'terminated': 'منهي الخدمة',
+    };
+    return labels[status] || status;
   };
 
   const handleDownloadDocument = (imageUrl: string, documentType: string, documentNumber?: string) => {
@@ -202,9 +213,57 @@ export default function EmployeeDetails({ employee, isOpen, onClose }: EmployeeD
                 <p className="text-lg font-semibold text-gray-900 mt-1">{employee.position || '-'}</p>
               </div>
               <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">القسم</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{employee.departmentId || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
                 <p className="text-sm text-gray-600">تاريخ المباشرة</p>
                 <p className="text-lg font-semibold text-gray-900 mt-1">
                   {employee.hireDate ? new Date(employee.hireDate).toLocaleDateString('ar-LY') : '-'}
+                </p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">الحالة</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{getStatusLabel(employee.status || 'active')}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Identity Information */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">معلومات الهوية</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">نوع الإثبات</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{getDocumentTypeLabel(employee.idType) || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">رقم الإثبات</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{employee.idNumber || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">الجنسية</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{employee.nationality || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">الراتب</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{employee.salary || '-'}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Information */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">معلومات إضافية</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">الاسم الأوسط</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">{employee.middleName || '-'}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">تاريخ الإنهاء</p>
+                <p className="text-lg font-semibold text-gray-900 mt-1">
+                  {employee.terminationDate ? new Date(employee.terminationDate).toLocaleDateString('ar-LY') : '-'}
                 </p>
               </div>
             </div>

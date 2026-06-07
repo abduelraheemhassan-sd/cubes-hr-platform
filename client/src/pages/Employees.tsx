@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit2, Trash2, Search, Eye, ChevronDown } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Eye, ChevronDown, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import EmployeeDetails from './EmployeeDetails';
+import * as XLSX from 'xlsx';
 
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -198,6 +199,38 @@ export default function Employees() {
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+  };
+
+  const handleExportToExcel = () => {
+    try {
+      const exportData = filteredEmployees.map((emp: any) => ({
+        'كود الموظف': `EMP-${String(emp.id).padStart(4, '0')}`,
+        'الاسم الأول': emp.firstName || '',
+        'الاسم الأوسط': emp.middleName || '',
+        'اسم العائلة': emp.lastName || '',
+        'البريد الإلكتروني': emp.email || '',
+        'رقم الهاتف': emp.phone || '',
+        'المسمى الوظيفي': emp.position || '',
+        'القسم': getDepartmentName(emp.departmentId) || '',
+        'الجنسية': emp.nationality || '',
+        'نوع الإثبات': emp.idType || '',
+        'رقم الإثبات': emp.idNumber || '',
+        'الراتب': emp.salary || '',
+        'تاريخ المباشرة': emp.hireDate ? new Date(emp.hireDate).toLocaleDateString('ar-LY') : '',
+        'تاريخ الإنهاء': emp.terminationDate ? new Date(emp.terminationDate).toLocaleDateString('ar-LY') : '',
+        'الحالة': getStatusLabel(emp.status || 'active'),
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'الموظفون');
+      
+      const fileName = `قائمة_الموظفين_${new Date().toLocaleDateString('ar-LY')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      toast.success('تم تصدير البيانات بنجاح');
+    } catch (error) {
+      toast.error('فشل تصدير البيانات');
+    }
   };
 
   return (
@@ -492,6 +525,14 @@ export default function Employees() {
             </SelectContent>
           </Select>
         </div>
+        <Button
+          onClick={handleExportToExcel}
+          className="bg-green-600 hover:bg-green-700"
+          disabled={filteredEmployees.length === 0}
+        >
+          <Download className="w-4 h-4 ml-2" />
+          تصدير Excel
+        </Button>
       </div>
 
       {/* Employees Table */}
