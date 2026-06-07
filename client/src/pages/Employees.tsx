@@ -13,6 +13,7 @@ import * as XLSX from 'xlsx';
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
@@ -158,7 +159,7 @@ export default function Employees() {
     setIsDetailOpen(true);
   };
 
-  // Filter employees by search query and department
+  // Filter employees by search query, department, and status
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch = 
       emp.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -167,8 +168,9 @@ export default function Employees() {
       emp.position?.toLowerCase().includes(searchQuery.toLowerCase());
     
     const matchesDepartment = selectedDepartment === 'all' || emp.departmentId?.toString() === selectedDepartment;
+    const matchesStatus = selectedStatus === 'all' || emp.status === selectedStatus;
     
-    return matchesSearch && matchesDepartment;
+    return matchesSearch && matchesDepartment && matchesStatus;
   });
 
   const getDepartmentName = (deptId: number | undefined) => {
@@ -522,6 +524,22 @@ export default function Employees() {
                   {dept.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-48">
+          <label className="block text-sm font-medium text-gray-700 mb-2">حالة الموظف</label>
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="flex items-center justify-between">
+              <SelectValue placeholder="جميع الحالات" />
+              <ChevronDown className="w-4 h-4" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">جميع الحالات</SelectItem>
+              <SelectItem value="active">نشط</SelectItem>
+              <SelectItem value="inactive">موقوف</SelectItem>
+              <SelectItem value="on_leave">على إجازة</SelectItem>
+              <SelectItem value="terminated">منهي الخدمة</SelectItem>
             </SelectContent>
           </Select>
         </div>

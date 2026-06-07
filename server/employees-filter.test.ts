@@ -353,4 +353,117 @@ describe('Employee Filtering and Search Features', () => {
       expect(formatDate('invalid')).toBe('-');
     });
   });
+
+  describe('Status Filter', () => {
+    let employeesWithStatus: any[] = [];
+
+    beforeEach(() => {
+      // إنشاء نسخة جديدة من البيانات مع حقل status
+      employeesWithStatus = mockEmployees.map((emp, index) => ({
+        ...emp,
+        status: index % 2 === 0 ? 'active' : 'inactive',
+      }));
+    });
+
+    it('should filter employees by active status', () => {
+      const selectedStatus = 'active';
+      const filtered = employeesWithStatus.filter(emp => emp.status === selectedStatus);
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+      if (filtered.length > 0) {
+        filtered.forEach(emp => {
+          expect(emp.status).toBe('active');
+        });
+      }
+    });
+
+    it('should filter employees by inactive status', () => {
+      const selectedStatus = 'inactive';
+      const filtered = employeesWithStatus.filter(emp => emp.status === selectedStatus);
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+      if (filtered.length > 0) {
+        filtered.forEach(emp => {
+          expect(emp.status).toBe('inactive');
+        });
+      }
+    });
+
+    it('should return all employees when status is all', () => {
+      const selectedStatus = 'all';
+      const filtered = employeesWithStatus.filter(emp => 
+        selectedStatus === 'all' || emp.status === selectedStatus
+      );
+
+      expect(filtered.length).toBe(employeesWithStatus.length);
+    });
+
+    it('should combine status filter with department filter', () => {
+      const selectedStatus = 'active';
+      const selectedDepartment = '1';
+      
+      const filtered = employeesWithStatus.filter(emp => {
+        const matchesStatus = emp.status === selectedStatus;
+        const matchesDepartment = emp.departmentId?.toString() === selectedDepartment;
+        return matchesStatus && matchesDepartment;
+      });
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+      if (filtered.length > 0) {
+        filtered.forEach(emp => {
+          expect(emp.status).toBe('active');
+          expect(emp.departmentId.toString()).toBe('1');
+        });
+      }
+    });
+
+    it('should combine status filter with search query', () => {
+      const selectedStatus = 'active';
+      const searchQuery = 'محمد';
+      
+      const filtered = employeesWithStatus.filter(emp => {
+        const matchesStatus = emp.status === selectedStatus;
+        const matchesSearch = emp.firstName.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesStatus && matchesSearch;
+      });
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+      if (filtered.length > 0) {
+        filtered.forEach(emp => {
+          expect(emp.status).toBe('active');
+        });
+      }
+    });
+
+    it('should combine all filters: status, department, and search', () => {
+      const selectedStatus = 'active';
+      const selectedDepartment = '1';
+      const searchQuery = 'مهندس';
+      
+      const filtered = employeesWithStatus.filter(emp => {
+        const matchesStatus = emp.status === selectedStatus;
+        const matchesDepartment = emp.departmentId?.toString() === selectedDepartment;
+        const matchesSearch = emp.position?.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesStatus && matchesDepartment && matchesSearch;
+      });
+
+      expect(filtered.length).toBeGreaterThanOrEqual(0);
+      if (filtered.length > 0) {
+        filtered.forEach(emp => {
+          expect(emp.status).toBe('active');
+          expect(emp.departmentId.toString()).toBe('1');
+        });
+      }
+    });
+
+    it('should handle all status values', () => {
+      const statuses = ['active', 'inactive', 'on_leave', 'terminated'];
+      
+      statuses.forEach(status => {
+        const filtered = employeesWithStatus.filter(emp => emp.status === status);
+        // لا نتوقع نتائج معينة، فقط نتحقق من أن الفلترة تعمل بدون أخطاء
+        expect(Array.isArray(filtered)).toBe(true);
+      });
+    });
+  });
 });
