@@ -5,12 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit2, Trash2, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
@@ -19,8 +21,6 @@ export default function Employees() {
     phone: '',
     position: '',
     department: '',
-    salary: '',
-    startDate: '',
     nationality: '',
     idType: '',
     idNumber: '',
@@ -71,8 +71,6 @@ export default function Employees() {
       phone: '',
       position: '',
       department: '',
-      salary: '',
-      startDate: '',
       nationality: '',
       idType: '',
       idNumber: '',
@@ -106,7 +104,7 @@ export default function Employees() {
         phone: formData.phone,
         position: formData.position,
         departmentId: formData.department ? parseInt(formData.department) : undefined,
-        hireDate: formData.startDate,
+        hireDate: new Date().toISOString().split('T')[0],
       });
     }
   };
@@ -119,8 +117,6 @@ export default function Employees() {
       phone: employee.phone || '',
       position: employee.position || '',
       department: employee.departmentId ? employee.departmentId.toString() : '',
-      salary: '',
-      startDate: employee.hireDate || '',
       nationality: '',
       idType: '',
       idNumber: employee.nationalId || '',
@@ -129,11 +125,43 @@ export default function Employees() {
     setIsOpen(true);
   };
 
+  const handleViewDetails = (employee: any) => {
+    setSelectedEmployee(employee);
+    setIsDetailOpen(true);
+  };
+
   const filteredEmployees = employees.filter(emp =>
     emp.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const getNationalityLabel = (code: string) => {
+    const nationalities: { [key: string]: string } = {
+      'SA': 'سعودي',
+      'AE': 'إماراتي',
+      'KW': 'كويتي',
+      'QA': 'قطري',
+      'BH': 'بحريني',
+      'OM': 'عماني',
+      'LY': 'ليبي',
+      'EG': 'مصري',
+      'SY': 'سوري',
+      'JO': 'أردني',
+    };
+    return nationalities[code] || code;
+  };
+
+  const getIdTypeLabel = (type: string) => {
+    const types: { [key: string]: string } = {
+      'national_id': 'الهوية الوطنية',
+      'passport': 'جواز السفر',
+      'residency': 'الإقامة',
+      'driving_license': 'رخصة القيادة',
+      'personal_card': 'البطاقة الشخصية',
+    };
+    return types[type] || type;
+  };
 
   return (
     <div className="space-y-6">
@@ -199,11 +227,11 @@ export default function Employees() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    القسم الفني *
+                    القسم *
                   </label>
                   <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="تقنية المعلومات" />
+                      <SelectValue placeholder="اختر القسم" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept: any) => (
@@ -243,81 +271,62 @@ export default function Employees() {
                 </div>
               </div>
 
-              {/* Row 4: Salary & Start Date */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    الراتب الأساسي (د.ا) *
-                  </label>
-                  <Input
-                    type="number"
-                    placeholder="الراتب"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    تاريخ مباشرة العمل *
-                  </label>
-                  <Input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    required
-                  />
-                </div>
+              {/* Row 4: Nationality */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  الجنسية *
+                </label>
+                <Input
+                  placeholder="أدخل الجنسية"
+                  value={formData.nationality}
+                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                  list="nationalities"
+                  required
+                />
+                <datalist id="nationalities">
+                  <option value="سعودي" />
+                  <option value="إماراتي" />
+                  <option value="كويتي" />
+                  <option value="قطري" />
+                  <option value="بحريني" />
+                  <option value="عماني" />
+                  <option value="ليبي" />
+                  <option value="مصري" />
+                  <option value="سوري" />
+                  <option value="أردني" />
+                </datalist>
               </div>
 
-              {/* Row 5: Nationality & ID Type */}
+              {/* Row 5: ID Type & ID Number */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    الجنسية *
-                  </label>
-                  <Select value={formData.nationality} onValueChange={(value) => setFormData({ ...formData, nationality: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="رقم وطني" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="SA">سعودي</SelectItem>
-                      <SelectItem value="AE">إماراتي</SelectItem>
-                      <SelectItem value="KW">كويتي</SelectItem>
-                      <SelectItem value="QA">قطري</SelectItem>
-                      <SelectItem value="BH">بحريني</SelectItem>
-                      <SelectItem value="OM">عماني</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    نوع الوثائق *
+                    نوع الوثيقة *
                   </label>
                   <Select value={formData.idType} onValueChange={(value) => setFormData({ ...formData, idType: value })}>
                     <SelectTrigger>
-                      <SelectValue placeholder="اختر النوع" />
+                      <SelectValue placeholder="اختر نوع الوثيقة" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="national_id">الهوية الوطنية</SelectItem>
                       <SelectItem value="passport">جواز السفر</SelectItem>
                       <SelectItem value="residency">الإقامة</SelectItem>
+                      <SelectItem value="driving_license">رخصة القيادة</SelectItem>
+                      <SelectItem value="personal_card">البطاقة الشخصية</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              {/* Row 6: ID Number */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  رقم الوثائق *
-                </label>
-                <Input
-                  placeholder="رقم الوثيقة"
-                  value={formData.idNumber}
-                  onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                  required
-                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    رقم الوثيقة *
+                  </label>
+                  <Input
+                    placeholder="رقم الوثيقة"
+                    value={formData.idNumber}
+                    onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
 
               {/* Buttons */}
@@ -446,8 +455,18 @@ export default function Employees() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => handleViewDetails(employee)}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="عرض التفاصيل"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleEdit(employee)}
                             className="text-indigo-600 hover:text-indigo-700"
+                            title="تعديل"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
@@ -460,6 +479,7 @@ export default function Employees() {
                               }
                             }}
                             className="text-red-600 hover:text-red-700"
+                            title="حذف"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -473,6 +493,96 @@ export default function Employees() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Employee Details Dialog */}
+      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-right">تفاصيل الموظف</DialogTitle>
+          </DialogHeader>
+          
+          {selectedEmployee && (
+            <div className="space-y-6">
+              {/* Personal Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">المعلومات الشخصية</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">الاسم الأول</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.firstName}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">اسم العائلة</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.lastName}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">البريد الإلكتروني</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.email}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">رقم الهاتف</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.phone || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Job Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">معلومات الوظيفة</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">المسمى الوظيفي</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.position || '-'}</p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">القسم</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                      {departments.find((d: any) => d.id === selectedEmployee.departmentId)?.name || '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">تاريخ المباشرة</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                      {selectedEmployee.hireDate ? new Date(selectedEmployee.hireDate).toLocaleDateString('ar-LY') : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">الحالة</p>
+                    <p className="text-lg font-semibold text-green-600 mt-1">نشط</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Document Information */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">معلومات الوثائق</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">نوع الوثيقة</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">
+                      {selectedEmployee.documentType ? getIdTypeLabel(selectedEmployee.documentType) : '-'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">رقم الوثيقة</p>
+                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.nationalId || '-'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={() => setIsDetailOpen(false)}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
+                  إغلاق
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
