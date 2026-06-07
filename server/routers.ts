@@ -9,6 +9,14 @@ import { logAuditAction, getAuditLog } from "./auditLog";
 import { getUserPermissions, hasPermission } from "./users";
 import { PERMISSIONS, ROLES } from "./permissions";
 import { getAllUsers } from "./users";
+import {
+  createApprovalRequest,
+  approveRequest,
+  rejectRequest,
+  getAllApprovals,
+  getApprovalById,
+  getUserPendingApprovals,
+} from "./approvals";
 
 export const appRouter = router({
   system: systemRouter,
@@ -102,16 +110,6 @@ export const appRouter = router({
     }),
   }),
 
-  // Approvals router
-  approvals: router({
-    list: protectedProcedure.query(async () => {
-      return await db.getApprovals();
-    }),
-    pending: protectedProcedure.query(async () => {
-      return await db.getPendingApprovals();
-    }),
-  }),
-
   // Attendance router
   attendance: router({
     getByEmployeeId: protectedProcedure.input(z.object({ employeeId: z.number() })).query(async ({ input }) => {
@@ -189,6 +187,58 @@ export const appRouter = router({
     permissions: protectedProcedure.query(async ({ ctx }) => {
       if (!ctx.user) return [];
       return await getUserPermissions(ctx.user);
+    }),
+  }),
+
+  // Approvals router
+  approvals: router({
+    list: publicProcedure.query(async () => {
+      return await getAllApprovals();
+    }),
+    create: protectedProcedure.input(z.object({
+      requestType: z.enum(["leave", "contract", "document", "employee_action", "salary_change"]),
+      description: z.string(),
+      priority: z.enum(["low", "medium", "high"]).optional(),
+      dueDate: z.date().optional(),
+      details: z.array(z.object({
+        fieldName: z.string(),
+        oldValue: z.string().optional(),
+        newValue: z.string().optional(),
+      })).optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const approvalId = await createApprovalRequest(
+        input.requestType,
+        ctx.user?.id || 0,
+        input.description,
+        input.priority,
+        input.dueDate,
+        input.details
+      );
+      return { id: approvalId };
+    }),
+    approve: protectedProcedure.input(z.object({
+      approvalId: z.number(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const result = await approveRequest(input.approvalId, ctx.user?.id || 0, input.notes);
+      return { success: result };
+    }),
+    reject: protectedProcedure.input(z.object({
+      approvalId: z.number(),
+      rejectionReason: z.string(),
+      notes: z.string().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const result = await rejectRequest(input.approvalId, ctx.user?.id || 0, input.rejectionReason, input.notes);
+      return { success: result };
+    }),
+    getPending: protectedProcedure.query(async ({ ctx }) => {
+      if (!ctx.user?.id) return [];
+      return await getUserPendingApprovals(ctx.user.id);
+    }),
+    getById: protectedProcedure.input(z.object({
+      id: z.number(),
+    })).query(async ({ input }) => {
+      return await getApprovalById(input.id);
     }),
   }),
 });

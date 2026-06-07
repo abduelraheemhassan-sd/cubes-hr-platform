@@ -43,6 +43,13 @@
       "when": 1780858936058,
       "tag": "0005_yummy_hobgoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1780859573276,
+      "tag": "0006_brainy_avengers",
+      "breakpoints": true
     }
   ]
 }

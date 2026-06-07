@@ -169,18 +169,36 @@ export type InsertEmployeeDocument = typeof employeeDocuments.$inferInsert;
  */
 export const approvals = mysqlTable("approvals", {
   id: int("id").autoincrement().primaryKey(),
-  requestType: varchar("requestType", { length: 50 }).notNull(), // leave, contract, document, etc.
+  requestType: varchar("requestType", { length: 50 }).notNull(), // leave, contract, document, employee_action, etc.
   requestedBy: int("requestedBy").notNull(),
   approvedBy: int("approvedBy"),
   description: text("description"),
   status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending"),
   notes: text("notes"),
+  priority: mysqlEnum("priority", ["low", "medium", "high"]).default("medium"),
+  dueDate: timestamp("dueDate"),
+  rejectionReason: text("rejectionReason"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Approval = typeof approvals.$inferSelect;
 export type InsertApproval = typeof approvals.$inferInsert;
+
+/**
+ * جدول تتبع تفاصيل طلبات الموافقة
+ */
+export const approvalDetails = mysqlTable("approval_details", {
+  id: int("id").autoincrement().primaryKey(),
+  approvalId: int("approvalId").notNull().references(() => approvals.id),
+  fieldName: varchar("fieldName", { length: 100 }).notNull(),
+  oldValue: text("oldValue"),
+  newValue: text("newValue"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ApprovalDetail = typeof approvalDetails.$inferSelect;
+export type InsertApprovalDetail = typeof approvalDetails.$inferInsert;
 
 /**
  * سجل الحضور والغياب
