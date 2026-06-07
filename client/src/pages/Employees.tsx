@@ -5,12 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit2, Trash2, Search, Eye } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Eye, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import EmployeeDetails from './EmployeeDetails';
 
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
@@ -25,6 +26,8 @@ export default function Employees() {
     nationality: '',
     idType: '',
     idNumber: '',
+    salary: '',
+    hireDate: '',
   });
 
   const { data: employees = [], isLoading, refetch } = trpc.employees.list.useQuery();
@@ -75,6 +78,8 @@ export default function Employees() {
       nationality: '',
       idType: '',
       idNumber: '',
+      salary: '',
+      hireDate: '',
     });
     setEditingId(null);
   };
@@ -105,7 +110,7 @@ export default function Employees() {
         phone: formData.phone,
         position: formData.position,
         departmentId: formData.department ? parseInt(formData.department) : undefined,
-        hireDate: new Date().toISOString().split('T')[0],
+        hireDate: formData.hireDate || new Date().toISOString().split('T')[0],
       });
     }
   };
@@ -121,6 +126,8 @@ export default function Employees() {
       nationality: '',
       idType: '',
       idNumber: employee.nationalId || '',
+      salary: employee.salary || '',
+      hireDate: employee.hireDate || '',
     });
     setEditingId(employee.id);
     setIsOpen(true);
@@ -131,37 +138,45 @@ export default function Employees() {
     setIsDetailOpen(true);
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Filter employees by search query and department
+  const filteredEmployees = employees.filter(emp => {
+    const matchesSearch = 
+      emp.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.position?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesDepartment = !selectedDepartment || emp.departmentId?.toString() === selectedDepartment;
+    
+    return matchesSearch && matchesDepartment;
+  });
 
-  const getNationalityLabel = (code: string) => {
-    const nationalities: { [key: string]: string } = {
-      'SA': 'سعودي',
-      'AE': 'إماراتي',
-      'KW': 'كويتي',
-      'QA': 'قطري',
-      'BH': 'بحريني',
-      'OM': 'عماني',
-      'LY': 'ليبي',
-      'EG': 'مصري',
-      'SY': 'سوري',
-      'JO': 'أردني',
-    };
-    return nationalities[code] || code;
+  const getDepartmentName = (deptId: number | undefined) => {
+    if (!deptId) return '-';
+    const dept = departments.find((d: any) => d.id === deptId);
+    return dept?.name || '-';
   };
 
-  const getIdTypeLabel = (type: string) => {
-    const types: { [key: string]: string } = {
-      'national_id': 'الهوية الوطنية',
-      'passport': 'جواز السفر',
-      'residency': 'الإقامة',
-      'driving_license': 'رخصة القيادة',
-      'personal_card': 'البطاقة الشخصية',
+  const getStatusLabel = (status: string) => {
+    const statuses: { [key: string]: string } = {
+      'active': 'نشط',
+      'inactive': 'غير نشط',
+      'on_leave': 'في إجازة',
     };
-    return types[type] || type;
+    return statuses[status] || 'نشط';
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors: { [key: string]: string } = {
+      'active': 'bg-green-100 text-green-800',
+      'inactive': 'bg-gray-100 text-gray-800',
+      'on_leave': 'bg-yellow-100 text-yellow-800',
+    };
+    return colors[status] || 'bg-green-100 text-green-800';
+  };
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
   };
 
   return (
@@ -171,7 +186,8 @@ export default function Employees() {
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
       />
-      {/* Header */}
+
+      {/* Header Section */}
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">الموظفون</h1>
@@ -191,12 +207,9 @@ export default function Employees() {
             </DialogHeader>
             
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Row 1: First Name & Last Name */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    الاسم الأول *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">الاسم الأول *</label>
                   <Input
                     placeholder="أدخل الاسم الأول"
                     value={formData.firstName}
@@ -205,9 +218,7 @@ export default function Employees() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    اسم العائلة *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">اسم العائلة *</label>
                   <Input
                     placeholder="أدخل اسم العائلة"
                     value={formData.lastName}
@@ -217,12 +228,9 @@ export default function Employees() {
                 </div>
               </div>
 
-              {/* Row 2: Email & Department */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    البريد الإلكتروني *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني *</label>
                   <Input
                     type="email"
                     placeholder="البريد الإلكتروني"
@@ -232,9 +240,7 @@ export default function Employees() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    القسم *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">القسم *</label>
                   <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر القسم" />
@@ -250,12 +256,9 @@ export default function Employees() {
                 </div>
               </div>
 
-              {/* Row 3: Position & Phone */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    المسمى الوظيفي *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">المسمى الوظيفي *</label>
                   <Input
                     placeholder="المسمى الوظيفي"
                     value={formData.position}
@@ -264,9 +267,7 @@ export default function Employees() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    رقم الهاتف *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف *</label>
                   <Input
                     type="tel"
                     placeholder="رقم الهاتف"
@@ -277,71 +278,32 @@ export default function Employees() {
                 </div>
               </div>
 
-              {/* Row 4: Nationality */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  الجنسية *
-                </label>
-                <Input
-                  placeholder="أدخل الجنسية"
-                  value={formData.nationality}
-                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                  list="nationalities"
-                  required
-                />
-                <datalist id="nationalities">
-                  <option value="سعودي" />
-                  <option value="إماراتي" />
-                  <option value="كويتي" />
-                  <option value="قطري" />
-                  <option value="بحريني" />
-                  <option value="عماني" />
-                  <option value="ليبي" />
-                  <option value="مصري" />
-                  <option value="سوري" />
-                  <option value="أردني" />
-                </datalist>
-              </div>
-
-              {/* Row 5: ID Type & ID Number */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    نوع الوثيقة *
-                  </label>
-                  <Select value={formData.idType} onValueChange={(value) => setFormData({ ...formData, idType: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع الوثيقة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="national_id">الهوية الوطنية</SelectItem>
-                      <SelectItem value="passport">جواز السفر</SelectItem>
-                      <SelectItem value="residency">الإقامة</SelectItem>
-                      <SelectItem value="driving_license">رخصة القيادة</SelectItem>
-                      <SelectItem value="personal_card">البطاقة الشخصية</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ المباشرة</label>
+                  <Input
+                    type="date"
+                    value={formData.hireDate}
+                    onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    رقم الوثيقة *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">الراتب</label>
                   <Input
-                    placeholder="رقم الوثيقة"
-                    value={formData.idNumber}
-                    onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
-                    required
+                    type="number"
+                    placeholder="الراتب الأساسي"
+                    value={formData.salary}
+                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
                   />
                 </div>
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3 pt-4">
                 <Button
                   type="submit"
                   className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
                 >
-                  حفظ الموظف وتفعيل الملف
+                  حفظ الموظف
                 </Button>
                 <Button
                   type="button"
@@ -357,30 +319,17 @@ export default function Employees() {
         </Dialog>
       </div>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-gray-600 text-sm">إجمالي الموظفين</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{employees.length}</p>
+                <p className="text-gray-600 text-sm">إجمالي الموظفين المديرين</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{filteredEmployees.length}</p>
               </div>
               <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
-                <Plus className="w-6 h-6 text-indigo-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">موظفون نشطون</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">{employees.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <Plus className="w-6 h-6 text-green-600" />
+                <span className="text-lg">👥</span>
               </div>
             </div>
           </CardContent>
@@ -393,99 +342,151 @@ export default function Employees() {
                 <p className="text-3xl font-bold text-blue-600 mt-1">{departments.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Plus className="w-6 h-6 text-blue-600" />
+                <span className="text-lg">🏢</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-gray-600 text-sm">الموظفون النشطون</p>
+                <p className="text-3xl font-bold text-green-600 mt-1">{employees.length}</p>
+              </div>
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                <span className="text-lg">✓</span>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <Search className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
-        <Input
-          placeholder="ابحث عن موظف بالاسم أو البريد الإلكتروني..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pr-10"
-        />
+      {/* Search and Filter Bar */}
+      <div className="flex gap-4 items-end">
+        <div className="flex-1">
+          <label className="block text-sm font-medium text-gray-700 mb-2">البحث بالاسم أو المسمى الوظيفي...</label>
+          <div className="relative">
+            <Search className="absolute right-3 top-3 w-5 h-5 text-gray-400" />
+            <Input
+              placeholder="ابحث هنا..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+        </div>
+        <div className="w-48">
+          <label className="block text-sm font-medium text-gray-700 mb-2">جميع الأقسام</label>
+          <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+            <SelectTrigger className="flex items-center justify-between">
+              <SelectValue placeholder="جميع الأقسام" />
+              <ChevronDown className="w-4 h-4" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">جميع الأقسام</SelectItem>
+              {departments.map((dept: any) => (
+                <SelectItem key={dept.id} value={dept.id.toString()}>
+                  {dept.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Employees Table */}
       <Card>
         <CardHeader>
-          <CardTitle>قائمة الموظفين ({filteredEmployees.length})</CardTitle>
+          <CardTitle>
+            إجمالي الموظفين المديرين: {filteredEmployees.length} موظفين
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الاسم</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">البريد الإلكتروني</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">المسمى الوظيفي</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">رقم الهاتف</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الحالة</th>
-                  <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700">الإجراءات</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">كود الموظف</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">اسم الموظف</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">المسمى الوظيفي</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">القسم</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">الجنسية والبيانات</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">تاريخ التعيين</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">الحالة</th>
+                  <th className="px-4 py-4 text-right font-semibold text-gray-700">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       جاري التحميل...
                     </td>
                   </tr>
                 ) : filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-8 text-center text-gray-500">
+                    <td colSpan={8} className="px-4 py-8 text-center text-gray-500">
                       لا توجد بيانات
                     </td>
                   </tr>
                 ) : (
-                  filteredEmployees.map((employee: any) => (
-                    <tr key={employee.id} className="border-t hover:bg-gray-50">
-                      <td className="px-4 py-3 text-sm text-gray-900 font-medium">
-                        {employee.firstName} {employee.lastName}
+                  filteredEmployees.map((employee: any, index: number) => (
+                    <tr key={employee.id} className="border-b border-gray-200 hover:bg-gray-50">
+                      <td className="px-4 py-4">
+                        <span className="text-gray-600">EMP-{String(employee.id).padStart(4, '0')}</span>
                       </td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{employee.email}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{employee.position || '-'}</td>
-                      <td className="px-4 py-3 text-sm text-gray-600">{employee.phone || '-'}</td>
-                      <td className="px-4 py-3 text-sm">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          نشط
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-xs font-bold text-indigo-600">
+                            {getInitials(employee.firstName, employee.lastName)}
+                          </div>
+                          <span className="font-medium text-gray-900">{employee.firstName} {employee.lastName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-gray-600">{employee.position || '-'}</td>
+                      <td className="px-4 py-4 text-gray-600">{getDepartmentName(employee.departmentId)}</td>
+                      <td className="px-4 py-4">
+                        <div className="text-sm">
+                          <p className="text-gray-900 font-medium">ليبي</p>
+                          <p className="text-gray-600 text-xs">رقم الهوية: {employee.nationalId || '-'}</p>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-gray-600">
+                        {employee.hireDate ? new Date(employee.hireDate).toLocaleDateString('ar-LY') : '-'}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor('active')}`}>
+                          {getStatusLabel('active')}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-sm">
+                      <td className="px-4 py-4">
                         <div className="flex gap-2">
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => handleViewDetails(employee)}
-                            className="text-blue-600 hover:text-blue-700"
-                            title="عرض التفاصيل"
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => handleEdit(employee)}
-                            className="text-indigo-600 hover:text-indigo-700"
-                            title="تعديل"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Button>
                           <Button
-                            variant="ghost"
                             size="sm"
+                            variant="ghost"
                             onClick={() => {
                               if (confirm('هل أنت متأكد من حذف هذا الموظف؟')) {
                                 deleteMutation.mutate({ id: employee.id });
                               }
                             }}
-                            className="text-red-600 hover:text-red-700"
-                            title="حذف"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -499,96 +500,6 @@ export default function Employees() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Employee Details Dialog */}
-      <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-right">تفاصيل الموظف</DialogTitle>
-          </DialogHeader>
-          
-          {selectedEmployee && (
-            <div className="space-y-6">
-              {/* Personal Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">المعلومات الشخصية</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">الاسم الأول</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.firstName}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">اسم العائلة</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.lastName}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">البريد الإلكتروني</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.email}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">رقم الهاتف</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.phone || '-'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Job Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">معلومات الوظيفة</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">المسمى الوظيفي</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.position || '-'}</p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">القسم</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">
-                      {departments.find((d: any) => d.id === selectedEmployee.departmentId)?.name || '-'}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">تاريخ المباشرة</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">
-                      {selectedEmployee.hireDate ? new Date(selectedEmployee.hireDate).toLocaleDateString('ar-LY') : '-'}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">الحالة</p>
-                    <p className="text-lg font-semibold text-green-600 mt-1">نشط</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Document Information */}
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">معلومات الوثائق</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">نوع الوثيقة</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">
-                      {selectedEmployee.documentType ? getIdTypeLabel(selectedEmployee.documentType) : '-'}
-                    </p>
-                  </div>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <p className="text-sm text-gray-600">رقم الوثيقة</p>
-                    <p className="text-lg font-semibold text-gray-900 mt-1">{selectedEmployee.nationalId || '-'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Close Button */}
-              <div className="flex gap-3 pt-4">
-                <Button
-                  onClick={() => setIsDetailOpen(false)}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                >
-                  إغلاق
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
