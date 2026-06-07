@@ -11,7 +11,7 @@ import EmployeeDetails from './EmployeeDetails';
 
 export default function Employees() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [isOpen, setIsOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
@@ -146,7 +146,7 @@ export default function Employees() {
       emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       emp.position?.toLowerCase().includes(searchQuery.toLowerCase());
     
-    const matchesDepartment = !selectedDepartment || emp.departmentId?.toString() === selectedDepartment;
+    const matchesDepartment = selectedDepartment === 'all' || emp.departmentId?.toString() === selectedDepartment;
     
     return matchesSearch && matchesDepartment;
   });
@@ -384,7 +384,7 @@ export default function Employees() {
               <ChevronDown className="w-4 h-4" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">جميع الأقسام</SelectItem>
+              <SelectItem value="all">جميع الأقسام</SelectItem>
               {departments.map((dept: any) => (
                 <SelectItem key={dept.id} value={dept.id.toString()}>
                   {dept.name}
