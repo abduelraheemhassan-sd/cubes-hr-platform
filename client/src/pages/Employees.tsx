@@ -30,6 +30,8 @@ export default function Employees() {
     hireDate: '',
   });
 
+  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+
   const { data: employees = [], isLoading, refetch } = trpc.employees.list.useQuery();
   const { data: departments = [] } = trpc.departments.list.useQuery();
   
@@ -87,16 +89,20 @@ export default function Employees() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.firstName || !formData.lastName || !formData.email) {
-      toast.error('يرجى ملء الحقول المطلوبة');
+    if (!formData.firstName || !formData.email || !formData.position || !formData.department) {
+      toast.error('يرجى ملء الحقول المطلوبة: الاسم والبريد والمسمى والقسم');
       return;
     }
+
+    // استخدام firstName كاسم رباعي ولقب ك姓 للتوافق مع البيانات
+    const fullName = formData.firstName;
+    const lastNamePart = formData.lastName || fullName.split(' ').pop() || 'User';
 
     if (editingId) {
       updateMutation.mutate({
         id: editingId,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        firstName: fullName,
+        lastName: lastNamePart,
         email: formData.email,
         phone: formData.phone,
         position: formData.position,
@@ -104,8 +110,8 @@ export default function Employees() {
       });
     } else {
       createMutation.mutate({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
+        firstName: fullName,
+        lastName: lastNamePart,
         email: formData.email,
         phone: formData.phone,
         position: formData.position,
@@ -200,50 +206,40 @@ export default function Employees() {
               إضافة موظف جديد
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-right">إضافة موظف جديد للمنظمة</DialogTitle>
-              <p className="text-sm text-gray-600 mt-2 text-right">يرجى ملء البيانات لإنشاء ملف وظيفي للموظف بالمنظمة</p>
+              <DialogTitle className="text-right text-2xl font-bold">إضافة موظف جديد للمنظمة</DialogTitle>
+              <p className="text-sm text-gray-600 mt-2 text-right">يرجى ملء البيانات لإنشاء ملف وظيفي ورقم وظيفي للموظف بالمنظمة</p>
             </DialogHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Row 1: الاسم الرباعي والقسم */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">الاسم الأول *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الاسم الرباعي *</label>
                   <Input
-                    placeholder="أدخل الاسم الأول"
+                    placeholder=""
                     value={formData.firstName}
                     onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                     required
+                    className="text-right"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">اسم العائلة *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">المسمى الوظيفي *</label>
                   <Input
-                    placeholder="أدخل اسم العائلة"
-                    value={formData.lastName}
-                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    placeholder=""
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                     required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني *</label>
-                  <Input
-                    type="email"
-                    placeholder="البريد الإلكتروني"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    required
+                    className="text-right"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">القسم *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">القسم الفني *</label>
                   <Select value={formData.department} onValueChange={(value) => setFormData({ ...formData, department: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر القسم" />
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="تقنية المعلومات" />
                     </SelectTrigger>
                     <SelectContent>
                       {departments.map((dept: any) => (
@@ -256,60 +252,93 @@ export default function Employees() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Row 2: البريد الإلكتروني والجنسية والنوع */}
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">المسمى الوظيفي *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">البريد الإلكتروني *</label>
                   <Input
-                    placeholder="المسمى الوظيفي"
-                    value={formData.position}
-                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    type="email"
+                    placeholder=""
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
+                    className="text-right"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الجنسية *</label>
                   <Input
-                    type="tel"
-                    placeholder="رقم الهاتف"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    required
+                    placeholder=""
+                    value={formData.nationality}
+                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                    className="text-right"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">نوع الإثبات *</label>
+                  <Select value={formData.idType} onValueChange={(value) => setFormData({ ...formData, idType: value })}>
+                    <SelectTrigger className="text-right">
+                      <SelectValue placeholder="رقم وطني" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="national_id">رقم وطني</SelectItem>
+                      <SelectItem value="passport">جواز سفر</SelectItem>
+                      <SelectItem value="driving_license">رخصة قيادة</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Row 3: الراتب الأساسي وتاريخ المباشرة ورقم الإثبات */}
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">الراتب الأساسي (د.ل) *</label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      placeholder=""
+                      value={formData.salary}
+                      onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                      className="text-right"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">تاريخ مباشرة العمل *</label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="date"
+                      value={formData.hireDate}
+                      onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
+                      className="text-right"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1 text-right">يوم / شهر / سنة</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">رقم الإثبات *</label>
+                  <Input
+                    placeholder=""
+                    value={formData.idNumber}
+                    onChange={(e) => setFormData({ ...formData, idNumber: e.target.value })}
+                    className="text-right"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ المباشرة</label>
-                  <Input
-                    type="date"
-                    value={formData.hireDate}
-                    onChange={(e) => setFormData({ ...formData, hireDate: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">الراتب</label>
-                  <Input
-                    type="number"
-                    placeholder="الراتب الأساسي"
-                    value={formData.salary}
-                    onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
+              {/* Buttons */}
+              <div className="flex gap-3 pt-6 justify-start">
                 <Button
                   type="submit"
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-8"
                 >
-                  حفظ الموظف
+                  حفظ الموظف وتفعيل الملف
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => { setIsOpen(false); resetForm(); }}
-                  className="flex-1"
+                  className="px-8"
                 >
                   إلغاء
                 </Button>
