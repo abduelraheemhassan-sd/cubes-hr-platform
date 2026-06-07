@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/_core/hooks/useAuth';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import Dashboard from './Dashboard';
@@ -11,6 +12,10 @@ import Attendance from './Attendance';
 import Settings from './Settings';
 
 export default function Home() {
+  // The userAuth hooks provides authentication state
+  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
+  let { user, loading, error, isAuthenticated, logout } = useAuth();
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
 
