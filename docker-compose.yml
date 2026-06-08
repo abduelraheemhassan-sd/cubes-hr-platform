@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # قاعدة البيانات MySQL
+  mysql:
+    image: mysql:8.0
+    container_name: cubes-hr-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password_123
+      MYSQL_DATABASE: cubes_hr_db
+      MYSQL_USER: cubes_user
+      MYSQL_PASSWORD: cubes_password_123
+      MYSQL_INITDB_SKIP_TZINFO: 1
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./setup.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - cubes-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password_123"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  # تطبيق CubesHR
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: cubes-hr-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: "mysql://cubes_user:cubes_password_123@mysql:3306/cubes_hr_db"
+      JWT_SECRET: "your_jwt_secret_key_here_min_32_chars_for_security"
+      NODE_ENV: "development"
+      PORT: 3000
+      VITE_APP_ID: "local_app_id"
+      VITE_OAUTH_PORTAL_URL: "http://localhost:3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - cubes-network
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/dist
+    command: pnpm dev
+    stdin_open: true
+    tty: true
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  cubes-network:
+    driver: bridge
