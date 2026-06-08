@@ -208,6 +208,7 @@ export const appRouter = router({
     create: protectedProcedure.input(z.object({
       requestType: z.enum(["leave", "contract", "document", "employee_action", "salary_change"]),
       description: z.string(),
+      employeeId: z.number().optional(),
       priority: z.enum(["low", "medium", "high"]).optional(),
       dueDate: z.date().optional(),
       details: z.array(z.object({
@@ -223,7 +224,8 @@ export const appRouter = router({
         input.description,
         input.priority,
         input.dueDate,
-        input.details
+        input.details,
+        input.employeeId
       );
       return { id: approvalId };
     }),

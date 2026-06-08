@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Clock, XCircle, Eye, Plus } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Eye, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -21,14 +21,19 @@ export default function Approvals() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [approvalNotes, setApprovalNotes] = useState('');
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   const [createFormData, setCreateFormData] = useState({
     requestType: '',
     description: '',
     priority: 'medium',
     dueDate: '',
+    employeeId: undefined as number | undefined,
+    employeeName: '',
   });
 
   const { data: approvals = [], isLoading, refetch } = trpc.approvals.list.useQuery();
+  const { data: employees = [] } = trpc.employees.list.useQuery();
 
   const approveMutation = trpc.approvals.approve.useMutation({
     onSuccess: () => {
@@ -65,6 +70,8 @@ export default function Approvals() {
         description: '',
         priority: 'medium',
         dueDate: '',
+        employeeId: undefined,
+        employeeName: '',
       });
       refetch();
     },
@@ -72,6 +79,11 @@ export default function Approvals() {
       toast.error(`خطأ: ${error.message}`);
     },
   });
+
+  const filteredEmployees = employees.filter((emp: any) =>
+    `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(employeeSearchQuery.toLowerCase()) ||
+    emp.email.toLowerCase().includes(employeeSearchQuery.toLowerCase())
+  );
 
   const filteredApprovals = approvals.filter((approval: any) => {
     const matchStatus = filterStatus === 'all' || approval.status === filterStatus;
@@ -120,6 +132,12 @@ export default function Approvals() {
     );
   };
 
+  const getEmployeeName = (employeeId?: number) => {
+    if (!employeeId) return 'بدون موظف محدد';
+    const emp = employees.find((e: any) => e.id === employeeId);
+    return emp ? `${emp.firstName} ${emp.lastName}` : 'موظف غير معروف';
+  };
+
   const pendingApprovals = approvals.filter((a: any) => a.status === 'pending').length;
   const approvedApprovals = approvals.filter((a: any) => a.status === 'approved').length;
   const rejectedApprovals = approvals.filter((a: any) => a.status === 'rejected').length;
@@ -147,11 +165,74 @@ export default function Approvals() {
               طلب موافقة جديد
             </Button>
           </DialogTrigger>
-          <DialogContent dir="rtl" className="max-w-md">
+          <DialogContent dir="rtl" className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>إنشاء طلب موافقة جديد</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
+              {/* اختيار الموظف */}
+              <div>
+                <label className="text-sm font-semibold">الموظف:</label>
+                <div className="relative">
+                  <Input
+                    placeholder="ابحث عن موظف..."
+                    value={employeeSearchQuery}
+                    onChange={(e) => {
+                      setEmployeeSearchQuery(e.target.value);
+                      setShowEmployeeDropdown(true);
+                    }}
+                    onFocus={() => setShowEmployeeDropdown(true)}
+                  />
+                  {showEmployeeDropdown && employeeSearchQuery && (
+                    <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md mt-1 max-h-40 overflow-y-auto z-10">
+                      {filteredEmployees.length > 0 ? (
+                        filteredEmployees.map((emp: any) => (
+                          <div
+                            key={emp.id}
+                            className="px-3 py-2 hover:bg-gray-100 cursor-pointer"
+                            onClick={() => {
+                              setCreateFormData({
+                                ...createFormData,
+                                employeeId: emp.id,
+                                employeeName: `${emp.firstName} ${emp.lastName}`,
+                              });
+                              setEmployeeSearchQuery('');
+                              setShowEmployeeDropdown(false);
+                            }}
+                          >
+                            <div className="font-semibold">{`${emp.firstName} ${emp.lastName}`}</div>
+                            <div className="text-sm text-gray-500">{emp.email}</div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500">لا توجد نتائج</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {createFormData.employeeName && (
+                  <div className="mt-2 p-2 bg-blue-50 rounded-md">
+                    <p className="text-sm">
+                      الموظف المختار: <span className="font-semibold">{createFormData.employeeName}</span>
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setCreateFormData({
+                          ...createFormData,
+                          employeeId: undefined,
+                          employeeName: '',
+                        });
+                      }}
+                      className="text-xs mt-1"
+                    >
+                      إزالة
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="text-sm font-semibold">نوع الطلب:</label>
                 <Select value={createFormData.requestType} onValueChange={(value) => setCreateFormData({...createFormData, requestType: value})}>
@@ -207,6 +288,7 @@ export default function Approvals() {
                     description: createFormData.description,
                     priority: createFormData.priority as any,
                     dueDate: createFormData.dueDate ? new Date(createFormData.dueDate) : undefined,
+                    employeeId: createFormData.employeeId,
                   });
                 }}
                 disabled={createMutation.isPending}
@@ -260,11 +342,15 @@ export default function Approvals() {
       <Card>
         <CardContent className="pt-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Input
-              placeholder="ابحث عن طلب..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="ابحث عن طلب..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger>
                 <SelectValue placeholder="حالة الطلب" />
@@ -319,7 +405,10 @@ export default function Approvals() {
                         {approval.priority && getPriorityBadge(approval.priority)}
                       </div>
                       <p className="text-gray-600 mb-2">{approval.description}</p>
-                      <div className="flex gap-4 text-sm text-gray-500">
+                      <div className="flex gap-4 text-sm text-gray-500 mb-2">
+                        <span>
+                          الموظف: <span className="font-semibold">{getEmployeeName(approval.employeeId)}</span>
+                        </span>
                         <span>
                           تاريخ الإنشاء: {new Date(approval.createdAt).toLocaleDateString('ar-EG')}
                         </span>
@@ -351,6 +440,10 @@ export default function Approvals() {
                               <div>
                                 <label className="text-sm font-semibold">نوع الطلب:</label>
                                 <p>{getRequestTypeLabel(selectedApproval.requestType)}</p>
+                              </div>
+                              <div>
+                                <label className="text-sm font-semibold">الموظف:</label>
+                                <p>{getEmployeeName(selectedApproval.employeeId)}</p>
                               </div>
                               <div>
                                 <label className="text-sm font-semibold">الوصف:</label>

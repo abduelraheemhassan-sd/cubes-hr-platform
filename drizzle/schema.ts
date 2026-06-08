@@ -171,6 +171,7 @@ export const approvals = mysqlTable("approvals", {
   id: int("id").autoincrement().primaryKey(),
   requestType: varchar("requestType", { length: 50 }).notNull(), // leave, contract, document, employee_action, etc.
   requestedBy: int("requestedBy").notNull(),
+  employeeId: int("employeeId"), // الموظف المتعلق بالطلب
   approvedBy: int("approvedBy"),
   description: text("description"),
   status: mysqlEnum("status", ["pending", "approved", "rejected"]).default("pending"),

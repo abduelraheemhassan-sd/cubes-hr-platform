@@ -1,0 +1,1 @@
+ALTER TABLE `approvals` ADD `employeeId` int;

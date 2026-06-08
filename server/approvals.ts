@@ -13,7 +13,8 @@ export async function createApprovalRequest(
   description: string,
   priority: ApprovalPriority = "medium",
   dueDate?: Date,
-  details?: Array<{ fieldName: string; oldValue?: string; newValue?: string }>
+  details?: Array<{ fieldName: string; oldValue?: string; newValue?: string }>,
+  employeeId?: number
 ) {
   try {
     const db = await getDb();
@@ -22,6 +23,7 @@ export async function createApprovalRequest(
     const result = await db.insert(approvals).values({
       requestType,
       requestedBy,
+      employeeId,
       description,
       priority,
       dueDate,
@@ -74,6 +76,13 @@ export async function approveRequest(approvalId: number, approvedBy: number, not
         updatedAt: new Date(),
       })
       .where(eq(approvals.id, approvalId));
+
+    // تحديث بيانات الموظف إذا كانت هناك تغييرات
+    try {
+      await updateEmployeeFromApproval(approvalId);
+    } catch (error) {
+      console.warn("Warning: Could not update employee from approval:", error);
+    }
 
     await logAuditAction({
       userId: approvedBy,
@@ -208,6 +217,66 @@ export async function getUserPendingApprovals(userId: number) {
       .where(and(eq(approvals.status, "pending"), eq(approvals.requestedBy, userId)));
   } catch (error) {
     console.error("Error fetching user pending approvals:", error);
+    throw error;
+  }
+}
+
+
+/**
+ * تحديث بيانات الموظف بناءً على طلب الموافقة
+ * تطبق التغييرات المسجلة في تفاصيل الطلب على بيانات الموظف
+ */
+export async function updateEmployeeFromApproval(approvalId: number) {
+  try {
+    const db = await getDb();
+    if (!db) throw new Error("Database not available");
+
+    // الحصول على تفاصيل الطلب
+    const approval = await getApprovalById(approvalId);
+    if (!approval) throw new Error("Approval not found");
+    if (!approval.employeeId) throw new Error("No employee associated with this approval");
+
+    // الحصول على تفاصيل التغييرات
+    const details = approval.details || [];
+    if (details.length === 0) return true;
+
+    // تطبيق التغييرات على الموظف
+    const { updateEmployee } = await import("./db");
+    const updateData: Record<string, any> = {};
+
+    for (const detail of details) {
+      if (detail.newValue) {
+        // تحويل القيم إلى الأنواع الصحيحة
+        if (detail.fieldName === "salary" || detail.fieldName === "basicSalary") {
+          updateData[detail.fieldName] = parseFloat(detail.newValue);
+        } else if (detail.fieldName === "isActive") {
+          updateData[detail.fieldName] = detail.newValue === "true";
+        } else if (detail.fieldName === "dateOfBirth" || detail.fieldName === "hireDate") {
+          updateData[detail.fieldName] = new Date(detail.newValue);
+        } else {
+          updateData[detail.fieldName] = detail.newValue;
+        }
+      }
+    }
+
+    // تحديث الموظف
+    if (Object.keys(updateData).length > 0) {
+      await updateEmployee(approval.employeeId, updateData);
+
+      // تسجيل التحديث في السجل
+      await logAuditAction({
+        userId: approval.approvedBy || 0,
+        action: "UPDATE_EMPLOYEE_FROM_APPROVAL",
+        module: "employees",
+        targetId: approval.employeeId,
+        details: `تم تحديث بيانات الموظف بناءً على الموافقة رقم ${approvalId}`,
+        newValues: updateData,
+      });
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error updating employee from approval:", error);
     throw error;
   }
 }
