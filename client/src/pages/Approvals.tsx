@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { trpc } from '@/lib/trpc';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, Clock, XCircle, Eye } from 'lucide-react';
+import { CheckCircle, Clock, XCircle, Eye, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
 
@@ -17,8 +18,15 @@ export default function Approvals() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [approvalNotes, setApprovalNotes] = useState('');
+  const [createFormData, setCreateFormData] = useState({
+    requestType: '',
+    description: '',
+    priority: 'medium',
+    dueDate: '',
+  });
 
   const { data: approvals = [], isLoading, refetch } = trpc.approvals.list.useQuery();
 
@@ -41,6 +49,23 @@ export default function Approvals() {
       setShowRejectDialog(false);
       setRejectionReason('');
       setSelectedApproval(null);
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(`خطأ: ${error.message}`);
+    },
+  });
+
+  const createMutation = trpc.approvals.create.useMutation({
+    onSuccess: () => {
+      toast.success('تم إنشاء طلب الموافقة بنجاح');
+      setShowCreateDialog(false);
+      setCreateFormData({
+        requestType: '',
+        description: '',
+        priority: 'medium',
+        dueDate: '',
+      });
       refetch();
     },
     onError: (error) => {
@@ -110,9 +135,88 @@ export default function Approvals() {
   return (
     <div className="space-y-6" dir="rtl">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">الموافقات</h1>
-        <p className="text-gray-600 mt-1">إدارة الموافقات والقرارات المعلقة</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">الموافقات</h1>
+          <p className="text-gray-600 mt-1">إدارة الموافقات والقرارات المعلقة</p>
+        </div>
+        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="w-4 h-4 ml-2" />
+              طلب موافقة جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent dir="rtl" className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>إنشاء طلب موافقة جديد</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold">نوع الطلب:</label>
+                <Select value={createFormData.requestType} onValueChange={(value) => setCreateFormData({...createFormData, requestType: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر نوع الطلب" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="leave">إجازة</SelectItem>
+                    <SelectItem value="contract">عقد</SelectItem>
+                    <SelectItem value="document">وثيقة</SelectItem>
+                    <SelectItem value="employee_action">إجراء موظف</SelectItem>
+                    <SelectItem value="salary_change">تغيير راتب</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold">الوصف:</label>
+                <Textarea
+                  placeholder="اشرح طلبك..."
+                  value={createFormData.description}
+                  onChange={(e) => setCreateFormData({...createFormData, description: e.target.value})}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-semibold">الأولوية:</label>
+                <Select value={createFormData.priority} onValueChange={(value) => setCreateFormData({...createFormData, priority: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="low">منخفضة</SelectItem>
+                    <SelectItem value="medium">متوسطة</SelectItem>
+                    <SelectItem value="high">عالية</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-sm font-semibold">الموعد النهائي (اختياري):</label>
+                <Input
+                  type="date"
+                  value={createFormData.dueDate}
+                  onChange={(e) => setCreateFormData({...createFormData, dueDate: e.target.value})}
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  if (!createFormData.requestType || !createFormData.description) {
+                    toast.error('يرجى ملء جميع الحقول المطلوبة');
+                    return;
+                  }
+                  createMutation.mutate({
+                    requestType: createFormData.requestType as any,
+                    description: createFormData.description,
+                    priority: createFormData.priority as any,
+                    dueDate: createFormData.dueDate ? new Date(createFormData.dueDate) : undefined,
+                  });
+                }}
+                disabled={createMutation.isPending}
+                className="w-full bg-blue-600 hover:bg-blue-700"
+              >
+                {createMutation.isPending ? 'جاري...' : 'إنشاء الطلب'}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats */}
@@ -359,9 +463,8 @@ export default function Approvals() {
                                       notes: approvalNotes,
                                     })
                                   }
-                                  disabled={rejectMutation.isPending || !rejectionReason}
-                                  variant="destructive"
-                                  className="w-full"
+                                  disabled={rejectMutation.isPending}
+                                  className="w-full bg-red-600 hover:bg-red-700"
                                 >
                                   {rejectMutation.isPending ? 'جاري...' : 'تأكيد الرفض'}
                                 </Button>

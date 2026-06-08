@@ -193,11 +193,17 @@ export const appRouter = router({
   // Approvals router
   approvals: router({
     list: protectedProcedure.query(async ({ ctx }) => {
-      // Only admins and HR managers can view all approvals
-      if (ctx.user?.role !== ROLES.ADMIN && ctx.user?.role !== ROLES.HR_MANAGER) {
-        throw new Error('Only admins and HR managers can view all approvals');
+      // All authenticated users can view approvals
+      // Admins and HR managers see all approvals
+      // Regular users see only their own approvals
+      if (ctx.user?.role === ROLES.ADMIN || ctx.user?.role === ROLES.HR_MANAGER) {
+        return await getAllApprovals();
       }
-      return await getAllApprovals();
+      // Regular users see only their own pending approvals
+      if (ctx.user?.id) {
+        return await getUserPendingApprovals(ctx.user.id);
+      }
+      return [];
     }),
     create: protectedProcedure.input(z.object({
       requestType: z.enum(["leave", "contract", "document", "employee_action", "salary_change"]),
